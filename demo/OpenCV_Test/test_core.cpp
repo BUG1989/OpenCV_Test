@@ -40,8 +40,8 @@ int test_fast_math()
 
 int test_base()
 {
-	FBC_StaticAssert(sizeof(void *) == 8, "64-bit code generation is not supported."); // sizeof(void *) = 8/4 ?
-	CV_StaticAssert(sizeof(void *) == 8, "64-bit code generation is not supported.");
+	// FBC_StaticAssert(sizeof(void *) == 8, "64-bit code generation is not supported."); // sizeof(void *) = 8/4 ?
+	// CV_StaticAssert(sizeof(void *) == 8, "64-bit code generation is not supported.");
 
 	double d1 = 1.0, d2 = 1.9, d3 = -1.0, d4 = -1.9;
 

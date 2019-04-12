@@ -12,7 +12,7 @@
 
 #include <assert.h>
 #include <algorithm>
-
+#include <stdio.h>
 #include "core/fbcdef.hpp"
 #include "core/interface.hpp"
 

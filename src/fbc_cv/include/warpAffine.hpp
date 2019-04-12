@@ -13,6 +13,10 @@
 #include "imgproc.hpp"
 #include "remap.hpp"
 
+#if __ARM_NEON
+#include <arm_neon.h>
+#endif // __ARM_NEON
+
 namespace fbc {
 
 // Calculates an affine transform from three pairs of the corresponding points
@@ -104,13 +108,38 @@ int warpAffine(const Mat_<_Tp1, chs1>& src, Mat_<_Tp1, chs1>& dst, const Mat_<_T
 				} else {
 					short* alpha = A + y1*bw;
 					x1 = 0;
+#if __ARM_NEON
+					int32x4_t v__X0 = vdupq_n_s32(X0), v__Y0 = vdupq_n_s32(Y0);
+					int32x4_t v_mask = vdupq_n_s32(INTER_TAB_SIZE - 1); // 31
+					int span = 4;
+					for( ; x1 <= bw - span * 2; x1 += span * 2 )
+					{
+						int32x4_t v_X0 = vshrq_n_s32((v__X0 + vld1q_s32(adelta + x + x1)), AB_BITS - INTER_BITS);
+						int32x4_t v_Y0 = vshrq_n_s32((v__Y0 + vld1q_s32(bdelta + x + x1)), AB_BITS - INTER_BITS);
+						int32x4_t v_X1 = vshrq_n_s32((v__X0 + vld1q_s32(adelta + x + x1 + span)), AB_BITS - INTER_BITS);
+						int32x4_t v_Y1 = vshrq_n_s32((v__Y0 + vld1q_s32(bdelta + x + x1 + span)), AB_BITS - INTER_BITS);
+
+						int16x8x2_t v_xy;
+						v_xy.val[0] = vcombine_s16(vmovn_s32(vshrq_n_s32(v_X0, INTER_BITS)), vmovn_s32((vshrq_n_s32(v_X1, INTER_BITS))));
+						v_xy.val[1] = vcombine_s16(vmovn_s32(vshrq_n_s32(v_Y0, INTER_BITS)), vmovn_s32((vshrq_n_s32(v_Y1, INTER_BITS))));
+
+						vst2q_s16(xy + (x1 << 1), v_xy);					
+
+						int32x4_t v_alpha0 = (vshlq_n_s32((v_Y0 & v_mask), INTER_BITS) | (v_X0 & v_mask));
+						int32x4_t v_alpha1 = (vshlq_n_s32((v_Y1 & v_mask), INTER_BITS) | (v_X1 & v_mask));
+
+						vst1q_s16(alpha + x1, vcombine_s16(vmovn_s32(v_alpha0), vmovn_s32(v_alpha1)));						
+					}
+#endif // __ARM_NEON
 					for (; x1 < bw; x1++) {
 						int X = (X0 + adelta[x + x1]) >> (AB_BITS - INTER_BITS);
 						int Y = (Y0 + bdelta[x + x1]) >> (AB_BITS - INTER_BITS);
+
 						xy[x1 * 2] = saturate_cast<short>(X >> INTER_BITS);
 						xy[x1 * 2 + 1] = saturate_cast<short>(Y >> INTER_BITS);
+
 						alpha[x1] = (short)((Y & (INTER_TAB_SIZE - 1))*INTER_TAB_SIZE +
-							(X & (INTER_TAB_SIZE - 1)));
+							(X & (INTER_TAB_SIZE - 1)));					
 					}
 				}
 			}
@@ -122,7 +151,7 @@ int warpAffine(const Mat_<_Tp1, chs1>& src, Mat_<_Tp1, chs1>& dst, const Mat_<_T
 				remap(src, dpart, _XY, _matA, interpolation, borderMode, borderValue);
 			}
 		}
-	}
+	}	
 
 	return 0;
 }

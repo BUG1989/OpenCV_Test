@@ -1,6 +1,19 @@
 #ifndef FBC_FBC_CV_FUNSET_HPP_
 #define FBC_FBC_CV_FUNSET_HPP_
 
+#include <string>
+#include <sstream>
+
+namespace std
+{
+    template < typename T > std::string to_string( const T& n )
+    {
+        std::ostringstream ss;
+        ss << n ;
+        return ss.str() ;
+    }
+}
+
 int test_fast_math();
 int test_base();
 int test_saturate();
@@ -83,6 +96,7 @@ int test_warpAffine_float();
 int test_getPerspectiveTransform();
 int test_warpPerspective_uchar();
 int test_warpPerspective_float();
+int test_warpAffine_tq();
 
 int run_all_test();
 
